@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+    <!-- Dark mode detection -->
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-3xl font-bold text-center mb-2 text-primary">Unit Converter</h1>
+        <p class="text-center mb-8 text-gray-600 dark:text-gray-400">Convert between different units of measurement</p>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <!-- Category Selection -->
+            <div class="mb-6">
+                <label for="category" class="block mb-2 font-medium">Conversion Category</label>
+                <select id="category" class="w-full p-3 border rounded-lg text-base bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 focus:ring-primary focus:border-primary">
+                    <option value="length">Length</option>
+                    <option value="area">Area</option>
+                    <option value="mass">Mass / Weight</option>
+                    <option value="volume">Volume</option>
+                    <option value="temperature">Temperature</option>
+                    <option value="speed">Speed</option>
+                    <option value="time">Time</option>
+                    <option value="digital">Digital Storage</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- From Unit -->
+                <div>
+                    <label for="from-value" class="block mb-2 font-medium">From</label>
+                    <input type="number" id="from-value" class="w-full p-3 mb-3 border rounded-lg text-base bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 focus:ring-primary focus:border-primary" placeholder="Enter value" value="1">
+                    <select id="from-unit" class="w-full p-3 border rounded-lg text-base bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 focus:ring-primary focus:border-primary">
+                        <!-- Units will be populated by JS -->
+                    </select>
+                </div>
+
+                <!-- To Unit -->
+                <div>
+                    <label for="to-value" class="block mb-2 font-medium">To</label>
+                    <input type="number" id="to-value" class="w-full p-3 mb-3 border rounded-lg text-base bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 focus:ring-primary focus:border-primary" placeholder="Result" readonly>
+                    <select id="to-unit" class="w-full p-3 border rounded-lg text-base bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 focus:ring-primary focus:border-primary">
+                        <!-- Units will be populated by JS -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Swap button -->
+            <div class="flex justify-center mt-4">
+                <button id="swap-button" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Formula Display -->
+            <div class="mt-6 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Formula: <span id="formula" class="font-mono">1 meter = 100 centimeters</span></p>
+            </div>
+        </div>
+
+        <!-- Recent Conversions -->
+        <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">Recent Conversions</h2>
+            <div id="history" class="space-y-2 max-h-40 overflow-y-auto">
+                <!-- History items will be added here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Define unit conversion data
+        const unitData = {
+            length: {
+                meter: 1,
+                kilometer: 1000,
+                centimeter: 0.01,
+                millimeter: 0.001,
+                mile: 1609.34,
+                yard: 0.9144,
+                foot: 0.3048,
+                inch: 0.0254
+            },
+            area: {
+                'square meter': 1,
+                'square kilometer': 1000000,
+                hectare: 10000,
+                acre: 4046.86,
+                'square mile': 2589988.11,
+                'square yard': 0.836127,
+                'square foot': 0.092903,
+                'square inch': 0.00064516
+            },
+            mass: {
+                kilogram: 1,
+                gram: 0.001,
+                milligram: 0.000001,
+                metric_ton: 1000,
+                pound: 0.453592,
+                ounce: 0.0283495,
+                stone: 6.35029
+            },
+            volume: {
+                liter: 1,
+                milliliter: 0.001,
+                'cubic meter': 1000,
+                'cubic centimeter': 0.001,
+                gallon: 3.78541,
+                quart: 0.946353,
+                pint: 0.473176,
+                'fluid ounce': 0.0295735
+            },
+            temperature: {
+                celsius: 'C',
+                fahrenheit: 'F',
+                kelvin: 'K'
+            },
+            speed: {
+                'meter/second': 1,
+                'kilometer/hour': 0.277778,
+                'mile/hour': 0.44704,
+                knot: 0.514444,
+                'foot/second': 0.3048
+            },
+            time: {
+                second: 1,
+                minute: 60,
+                hour: 3600,
+                day: 86400,
+                week: 604800,
+                month: 2592000,
+                year: 31536000
+            },
+            digital: {
+                byte: 1,
+                kilobyte: 1024,
+                megabyte: 1048576,
+                gigabyte: 1073741824,
+                terabyte: 1099511627776
+            }
+        };
+
+        // Temperature conversion functions
+        function convertTemperature(value, fromUnit, toUnit) {
+            // Convert to Celsius as base unit
+            let celsius;
+            if (fromUnit === 'celsius') {
+                celsius = value;
+            } else if (fromUnit === 'fahrenheit') {
+                celsius = (value - 32) * 5/9;
+            } else if (fromUnit === 'kelvin') {
+                celsius = value - 273.15;
+            }
+
+            // Convert from Celsius to target unit
+            if (toUnit === 'celsius') {
+                return celsius;
+            } else if (toUnit === 'fahrenheit') {
+                return celsius * 9/5 + 32;
+            } else if (toUnit === 'kelvin') {
+                return celsius + 273.15;
+            }
+        }
+
+        // Get temperature conversion formula
+        function getTemperatureFormula(fromUnit, toUnit) {
+            if (fromUnit === 'celsius' && toUnit === 'fahrenheit') {
+                return '°C to °F: (°C × 9/5) + 32';
+            } else if (fromUnit === 'celsius' && toUnit === 'kelvin') {
+                return '°C to K: °C + 273.15';
+            } else if (fromUnit === 'fahrenheit' && toUnit === 'celsius') {
+                return '°F to °C: (°F - 32) × 5/9';
+            } else if (fromUnit === 'fahrenheit' && toUnit === 'kelvin') {
+                return '°F to K: (°F - 32) × 5/9 + 273.15';
+            } else if (fromUnit === 'kelvin' && toUnit === 'celsius') {
+                return 'K to °C: K - 273.15';
+            } else if (fromUnit === 'kelvin' && toUnit === 'fahrenheit') {
+                return 'K to °F: (K - 273.15) × 9/5 + 32';
+            } else {
+                return `1 ${fromUnit} = 1 ${toUnit}`; // Same unit
+            }
+        }
+
+        // DOM elements
+        const categorySelect = document.getElementById('category');
+        const fromUnitSelect = document.getElementById('from-unit');
+        const toUnitSelect = document.getElementById('to-unit');
+        const fromValueInput = document.getElementById('from-value');
+        const toValueInput = document.getElementById('to-value');
+        const swapButton = document.getElementById('swap-button');
+        const formulaElement = document.getElementById('formula');
+        const historyElement = document.getElementById('history');
+
+        // Populate unit dropdowns based on selected category
+        function populateUnitDropdowns() {
+            const category = categorySelect.value;
+            const units = Object.keys(unitData[category]);
+            
+            // Clear existing options
+            fromUnitSelect.innerHTML = '';
+            toUnitSelect.innerHTML = '';
+            
+            // Add new options
+            units.forEach(unit => {
+                fromUnitSelect.appendChild(new Option(unit, unit));
+                toUnitSelect.appendChild(new Option(unit, unit));
+            });
+            
+            // Set different default "to" unit if possible
+            if (units.length > 1) {
+                toUnitSelect.selectedIndex = 1;
+            }
+            
+            // Trigger conversion
+            convert();
+        }
+
+        // Convert units
+        function convert() {
+            const category = categorySelect.value;
+            const fromUnit = fromUnitSelect.value;
+            const toUnit = toUnitSelect.value;
+            const fromValue = parseFloat(fromValueInput.value);
+            
+            if (isNaN(fromValue)) {
+                toValueInput.value = '';
+                return;
+            }
+            
+            let result;
+            let formula;
+            
+            if (category === 'temperature') {
+                result = convertTemperature(fromValue, fromUnit, toUnit);
+                formula = getTemperatureFormula(fromUnit, toUnit);
+            } else {
+                // For other units, convert using ratios
+                const fromRatio = unitData[category][fromUnit];
+                const toRatio = unitData[category][toUnit];
+                result = fromValue * (fromRatio / toRatio);
+                
+                if (fromUnit === toUnit) {
+                    formula = `1 ${fromUnit} = 1 ${toUnit}`;
+                } else {
+                    formula = `1 ${fromUnit} = ${(fromRatio / toRatio).toLocaleString()} ${toUnit}`;
+                }
+            }
+            
+            toValueInput.value = result.toLocaleString(undefined, {
+                maximumFractionDigits: 10,
+                useGrouping: true
+            });
+            
+            formulaElement.textContent = formula;
+            
+            // Add to history
+            addToHistory(fromValue, fromUnit, result, toUnit);
+        }
+
+        // Add conversion to history
+        function addToHistory(fromValue, fromUnit, toValue, toUnit) {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'p-2 bg-gray-50 dark:bg-gray-700 rounded text-sm';
+            historyItem.textContent = `${fromValue} ${fromUnit} = ${toValue.toLocaleString(undefined, {maximumFractionDigits: 6})} ${toUnit}`;
+            
+            // Add to top of history
+            historyElement.insertBefore(historyItem, historyElement.firstChild);
+            
+            // Limit history items
+            if (historyElement.children.length > 10) {
+                historyElement.removeChild(historyElement.lastChild);
+            }
+        }
+
+        // Swap from and to units
+        function swapUnits() {
+            const tempUnit = fromUnitSelect.value;
+            fromUnitSelect.value = toUnitSelect.value;
+            toUnitSelect.value = tempUnit;
+            convert();
+        }
+
+        // Event listeners
+        categorySelect.addEventListener('change', populateUnitDropdowns);
+        fromUnitSelect.addEventListener('change', convert);
+        toUnitSelect.addEventListener('change', convert);
+        fromValueInput.addEventListener('input', convert);
+        swapButton.addEventListener('click', swapUnits);
+
+        // Initialize the app
+        populateUnitDropdowns();
+    </script>
+</body>
+</html>
