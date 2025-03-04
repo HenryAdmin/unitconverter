@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Writing Feedback Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/marked@4.0.2/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-3xl font-bold text-center mb-8 text-primary">Writing Feedback Tool</h1>
+        
+        <div id="error-message" class="hidden mb-4 p-4 text-red-800 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-200"></div>
+        
+        <div class="mb-6">
+            <label for="writing-input" class="block mb-2 font-medium">Your Text</label>
+            <textarea id="writing-input" rows="8" class="w-full p-3 border rounded-lg shadow-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary text-base" placeholder="Paste or type your writing here..."></textarea>
+        </div>
+        
+        <div class="mb-6">
+            <label class="block mb-2 font-medium">Select Feedback Aspects</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="flex items-center">
+                    <input id="grammar" type="checkbox" class="w-5 h-5 text-primary bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary" checked>
+                    <label for="grammar" class="ml-2">Grammar & Spelling</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="clarity" type="checkbox" class="w-5 h-5 text-primary bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary" checked>
+                    <label for="clarity" class="ml-2">Clarity & Coherence</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="style" type="checkbox" class="w-5 h-5 text-primary bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary">
+                    <label for="style" class="ml-2">Style & Tone</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="structure" type="checkbox" class="w-5 h-5 text-primary bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary">
+                    <label for="structure" class="ml-2">Structure & Organization</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="vocabulary" type="checkbox" class="w-5 h-5 text-primary bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary">
+                    <label for="vocabulary" class="ml-2">Vocabulary & Word Choice</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="suggestions" type="checkbox" class="w-5 h-5 text-primary bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary" checked>
+                    <label for="suggestions" class="ml-2">Improvement Suggestions</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-center mb-8">
+            <button id="analyze-btn" class="px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-opacity-90 focus:outline-none focus:ring-4 focus:ring-primary focus:ring-opacity-50 transition-colors">Analyze My Writing</button>
+        </div>
+        
+        <div id="loading" class="hidden justify-center items-center mb-6 p-4">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+            <span class="ml-3">Analyzing your writing...</span>
+        </div>
+        
+        <div id="feedback-container" class="hidden bg-gray-50 dark:bg-gray-800 rounded-lg p-6 shadow-md">
+            <h2 class="text-xl font-bold mb-4 text-primary">Feedback</h2>
+            <div id="feedback-content" class="prose dark:prose-invert max-w-none">
+                <!-- Feedback will be displayed here -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Dark mode detection and handling
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+        
+        // DOM elements
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const writingInput = document.getElementById('writing-input');
+        const loadingIndicator = document.getElementById('loading');
+        const feedbackContainer = document.getElementById('feedback-container');
+        const feedbackContent = document.getElementById('feedback-content');
+        const errorMessage = document.getElementById('error-message');
+        
+        // Function to show error
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000); // Hide after 5 seconds
+        }
+        
+        // Register handler for feedback
+        window.Poe.registerHandler("writing-feedback-handler", (result, context) => {
+            const response = result.responses[0];
+            
+            // Hide loading indicator
+            loadingIndicator.classList.add('hidden');
+            loadingIndicator.classList.remove('flex');
+            
+            if (response.status === "error") {
+                feedbackContent.innerHTML = `<div class="text-red-500">Error: ${response.statusText || "Failed to get feedback"}</div>`;
+                feedbackContainer.classList.remove('hidden');
+                return;
+            }
+            
+            // Display feedback
+            if (response.status === "complete" || response.status === "incomplete") {
+                // Convert markdown to HTML
+                feedbackContent.innerHTML = marked.parse(response.content);
+                feedbackContainer.classList.remove('hidden');
+            }
+        });
+        
+        // Handle analyze button click
+        analyzeBtn.addEventListener('click', async () => {
+            const text = writingInput.value.trim();
+            
+            if (!text) {
+                showError("Please enter some text to analyze.");
+                return;
+            }
+            
+            // Get selected aspects
+            const aspects = [];
+            if (document.getElementById('grammar').checked) aspects.push("grammar and spelling");
+            if (document.getElementById('clarity').checked) aspects.push("clarity and coherence");
+            if (document.getElementById('style').checked) aspects.push("style and tone");
+            if (document.getElementById('structure').checked) aspects.push("structure and organization");
+            if (document.getElementById('vocabulary').checked) aspects.push("vocabulary and word choice");
+            if (document.getElementById('suggestions').checked) aspects.push("improvement suggestions");
+            
+            if (aspects.length === 0) {
+                showError("Please select at least one feedback aspect.");
+                return;
+            }
+            
+            // Show loading indicator
+            loadingIndicator.classList.remove('hidden');
+            loadingIndicator.classList.add('flex');
+            
+            // Hide previous feedback
+            feedbackContainer.classList.add('hidden');
+            
+            try {
+                const prompt = `@GPT-4o-mini I need feedback on the following text regarding these specific aspects: ${aspects.join(', ')}. 
+                    Please provide clear, detailed, and constructive feedback for each selected aspect.
+                    Format your response with headings for each aspect and bullet points for specific issues or suggestions.
+                    
+                    TEXT TO ANALYZE:
+                    ${text}`;
+                
+                await window.Poe.sendUserMessage(prompt, {
+                    handler: "writing-feedback-handler",
+                    stream: true,
+                    openChat: false
+                });
+            } catch (err) {
+                loadingIndicator.classList.add('hidden');
+                loadingIndicator.classList.remove('flex');
+                showError(`Error: ${err.message || "Failed to send message"}`);
+            }
+        });
+    </script>
+</body>
+</html>
